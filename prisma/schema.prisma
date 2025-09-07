@@ -1,0 +1,127 @@
+// Prisma schema for Aurence - Influencer Brand Marketplace
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now())
+
+  // Profile relations
+  creatorProfile CreatorProfile?
+  brandProfile   BrandProfile?
+
+  // Campaign relations
+  campaignsAsBrand Campaign[] @relation("BrandCampaigns")
+  applications     Application[]
+
+  // Message relations
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+}
+
+model CreatorProfile {
+  id            String   @id @default(cuid())
+  bio           String?
+  niche         String?
+  socials       String?  // JSON string of social media handles
+  followerCount Int?
+  profilePicture String?
+  isComplete    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BrandProfile {
+  id          String   @id @default(cuid())
+  companyName String
+  description String?
+  industry    String?
+  budgetRange String?
+  logo        String?
+  isComplete  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Campaign {
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  budget      Int
+  category    String
+  deadline    DateTime?
+  status      CampaignStatus @default(ACTIVE)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @default(now())
+
+  brandId String
+  brand   User   @relation("BrandCampaigns", fields: [brandId], references: [id], onDelete: Cascade)
+
+  applications Application[]
+}
+
+model Application {
+  id        String            @id @default(cuid())
+  status    ApplicationStatus @default(PENDING)
+  message   String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @default(now())
+
+  creatorId  String
+  creator    User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([creatorId, campaignId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  CREATOR
+  BRAND
+}
+
+enum CampaignStatus {
+  ACTIVE
+  CLOSED
+  COMPLETED
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+
